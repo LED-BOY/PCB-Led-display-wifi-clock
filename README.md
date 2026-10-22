@@ -44,12 +44,14 @@ To join the diffusor to the board, you can use some 1.75mm filament preferably P
 
 # Flashing the firmware:
 You need to flash the ESP32 C3 in arduino or using other ESP32 flashing solution with the compiled binary.
-If you are using the arduino ide you need to install ESP32 by Espressif in board manager then burn bootloader to the boards and then send the program with this board settings.
+If you are using the arduino ide you need to install ESP32 by Espressif in board manager then burn bootloader to the boards and then send the program with this board settings:
+
+<img width="616" height="608" alt="Captura de pantalla 2026-10-22 152753" src="https://github.com/user-attachments/assets/72462af9-1677-4572-b6ab-506296b2d445" />
 
 Using Flash download tool:
 Download the tool: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
 
-Then select Develop and the correct board in this case C3 and load mode UART.
+Then select Develop, and the correct board in this case C3 and load mode UART.
 .<img width="302" height="291" alt="Captura de pantalla 2026-10-22 151827" src="https://github.com/user-attachments/assets/71c63a34-fcc9-4856-baad-7726d1dfac9b" />
 
 Select the merged .bin firmware and configure your com port and address 0x0000 then press start and wait to finish, you have to restart your board manually.
