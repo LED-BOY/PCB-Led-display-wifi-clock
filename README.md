@@ -48,6 +48,7 @@ If you are using the arduino ide you need to install ESP32 by Espressif in board
 
 <img width="616" height="608" alt="Captura de pantalla 2026-10-22 152753" src="https://github.com/user-attachments/assets/72462af9-1677-4572-b6ab-506296b2d445" />
 
+
 Using Flash download tool:
 Download the tool: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
 
@@ -55,7 +56,9 @@ Then select Develop, and the correct board in this case C3 and load mode UART.
 .<img width="302" height="291" alt="Captura de pantalla 2026-10-22 151827" src="https://github.com/user-attachments/assets/71c63a34-fcc9-4856-baad-7726d1dfac9b" />
 
 Select the merged .bin firmware and configure your com port and address 0x0000 then press start and wait to finish, you have to restart your board manually.
-<img width="589" height="631" alt="Captura de pantalla 2026-08-14 151308" src="https://github.com/user-attachments/assets/90be87ea-62ce-4b1c-9e00-87717a713805" />
+
+<img width="523" height="858" alt="Captura de pantalla 2026-10-22 151845" src="https://github.com/user-attachments/assets/1335b5ff-ac59-4f1b-9661-26ab083455e4" />
+
 
 Once flashed you can use the clock portal to config and update the firmware, using the compiled binary in releases.
 
