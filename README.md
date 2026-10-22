@@ -45,6 +45,7 @@ To join the diffusor to the board, you can use some 1.75mm filament preferably P
 # Flashing the firmware:
 You need to flash the ESP32 C3 in arduino or using other ESP32 flashing solution with the compiled binary.
 If you are using the arduino ide you need to install ESP32 by Espressif in board manager then burn bootloader to the boards and then send the program with this board settings.
+
 Using Flash download tool:
 Download the tool: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
 
