@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a firmware, setup or display problem
+title: "[Bug]: "
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Hardware and firmware
+      description: Firmware version, PCB revision, ESP32-C3 variant, power supply, Arduino-ESP32 version and board settings if built locally.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include relevant portal settings without Wi-Fi credentials or personal data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Photos or logs
+      description: Remove passwords, public IPs and other personal information before posting.

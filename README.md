@@ -1,68 +1,76 @@
-# PCB Led display wifi clock
+# GemaLight · PCB LED Wi-Fi Clock
 
-# Introduction: 
-A led display taking avantage of the transparency of PCBs FR4 board charliplexing a couple of leds with a ESP32 C3, it display time  and temperature, auto time sync based on IP.
-<img width="2236" height="1326" alt="20260814_115938" src="https://github.com/user-attachments/assets/0c8ef493-8c9e-4351-bac5-b09b48d5e743" />
+A four-digit clock that turns translucent FR4 into an LED display. An ESP32-C3 drives charlieplexed LEDs to show the time and outdoor temperature, with a browser-based setup portal and wireless firmware updates.
 
-Leds are mounted sideways in the bottom of the board.
+[![Firmware](https://img.shields.io/badge/firmware-3.6-2563eb)](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6)
+[![Platform](https://img.shields.io/badge/platform-ESP32--C3-333333)](docs/FIRMWARE.md)
+[![Arduino](https://img.shields.io/badge/Arduino--ESP32-3.x-008184)](docs/FIRMWARE.md)
 
-<img width="3000" height="4000" alt="20260728_200018" src="https://github.com/user-attachments/assets/e89deed8-6aca-40ce-afee-97134708f9e2" />
+**English** · [Español](README.es.md)
 
-<img width="1676" height="1535" alt="20260813_190813" src="https://github.com/user-attachments/assets/c8df0108-78f4-4db1-98c9-d2e753f6749f" />
+[Get firmware](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6) · [Build the clock](docs/HARDWARE.md) · [Flash firmware](docs/FIRMWARE.md) · [Configure](docs/SETUP.md)
 
-Time display, in person the display is much more define and vivid thanks to human eyes persistence of vision, because of charlyPlexing of the leds the camera washout the result.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0c8ef493-8c9e-4351-bac5-b09b48d5e743" alt="GemaLight clock assembled with its translucent PCB display" width="900">
+</p>
 
-<img width="1658" height="1441" alt="20260813_190823" src="https://github.com/user-attachments/assets/840e3d11-ebf7-4f96-81f5-093efb4d8e2f" />
+## What it does
 
-Temp display, it uses temperature from nearest whether station available in auto IP setting.
+- **Time over Wi-Fi:** NTP synchronization at startup and hourly after success, with backup servers and automatic retries.
+- **Outdoor temperature:** optional weather data from Open-Meteo using an approximate location derived from the public IP address; no onboard temperature sensor is used.
+- **Automatic brightness:** sunrise/sunset scheduling, a night fallback, manual Low/High levels and optional Boost.
+- **Offline operation:** manual time configuration without an internet connection.
+- **Phone-friendly setup:** configure Wi-Fi, time, brightness and display options from a captive portal.
+- **Wireless updates and diagnostics:** upload an application binary and test all segments from the setup portal.
+- **Background network work:** version 3.6 keeps the display refreshing while synchronization runs.
 
-<img width="1834" height="1539" alt="20260813_190843" src="https://github.com/user-attachments/assets/ba181ecf-2dc7-4f63-a56b-2b8156dfffd5" />
+## Start here
 
-When the board is power up or reseted, AP is enable for 1 minute, with any wifi capable device you can connect to ClockSetup then enter in a browser IP:192.168.4.1
-and password:12345678
-Then a portal is opened in the browser to config the clock and update the firmware, the clock can also be used offline if desired.
-Enter your network name and password to use auto sync feature, only 2.4ghz networks are compatible.
+1. Assemble a compatible ESP32-C3 Super Mini and PCB. Check the [hardware files and revision notes](docs/HARDWARE.md).
+2. [Flash the firmware](docs/FIRMWARE.md). Use a merged binary for first installation or an application binary for a portal update.
+3. Power on or reset the clock. Join **ClockSetup**, password **12345678**.
+4. Open [192.168.4.1](http://192.168.4.1/) if the setup page does not appear automatically.
+5. Enter a **2.4 GHz** Wi-Fi network, choose your settings and press **Save**. The clock restarts.
 
-<img width="1677" height="1580" alt="20260813_190858" src="https://github.com/user-attachments/assets/c79468b9-df62-4c2b-862e-3c892521c4bd" />
+The portal opens for 60 seconds at boot, extending to a 10-minute window when a device joins. Reset the clock to reopen it later. See the [setup guide](docs/SETUP.md) for button actions, indicators and troubleshooting.
 
-If auto sync is enabled in portal, the clock auto syncs every time.
+## Design
 
-<img width="1820" height="1152" alt="20260814_111958" src="https://github.com/user-attachments/assets/e5218064-cee5-4569-b5e5-731c7501173a" />
+LEDs mounted sideways illuminate the FR4 board. Charlieplexing selects each segment using pairs of GPIOs; a separate output drives the colon. A printed diffuser helps define the digits and reduce light bleed. Camera exposure can make the multiplexed display look less distinct than it does in person.
 
-To have better definition of the digits a 3d printed diffusor/case is recommended, white color gives the best results, if you have a multicolor printer the first 4 layers can be printed in black to prevent led bleeding in the back, painting the back also works, be carful of some paints may contain metal that can decrease wifi performance.
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/c8df0108-78f4-4db1-98c9-d2e753f6749f" alt="Clock showing the time" width="400"></td>
+    <td><img src="https://github.com/user-attachments/assets/840e3d11-ebf7-4f96-81f5-093efb4d8e2f" alt="Clock showing outdoor temperature" width="400"></td>
+  </tr>
+  <tr><td align="center">Time display</td><td align="center">Outdoor temperature</td></tr>
+</table>
 
-<img width="2263" height="1356" alt="20260814_112311" src="https://github.com/user-attachments/assets/a3d10305-ad62-412f-80c6-2a91aec4f0dc" />
+## Repository guide
 
-# ESP32 C3 board:
-You need to manually solder the esp32 C3 super mini to the PCB, it is beginners friendly since the pads are pretty big, you only need to be careful to buy the same pin placement board in Aliexpress or local supplier.
+| Location | Contents |
+| --- | --- |
+| [Source](Source/) | Arduino sketch and version 3.6 technical notes |
+| [PCB assembly](PCB%20assembly/) | Gerbers, BOMs, placement data and LED orientation |
+| [STL files](STL%20files/) | Case, diffuser and stand models |
+| [Schematic v1.7](schematic%20v1.7.png) | Circuit reference |
+| [Hardware guide](docs/HARDWARE.md) | Parts, revisions and assembly |
+| [Firmware guide](docs/FIRMWARE.md) | Arduino settings, USB flashing and portal updates |
+| [Setup guide](docs/SETUP.md) | Everyday use and troubleshooting |
+| [Changelog](CHANGELOG.md) | Firmware history and repository improvements |
 
-<img width="702" height="527" alt="Sin título" src="https://github.com/user-attachments/assets/a2b4d4ee-3948-4200-8df7-c21813804198" />
+## Firmware 3.6
 
-To join the diffusor to the board, you can use some 1.75mm filament preferably PLA since it melts very easily, cut to size (aprox 7mm), and with a lighter burn the points and press with you fingers, alternatively you can use the filaments to align the boards glue it, and then cut the excess, or use some 2mm screws and nuts.
+A single FreeRTOS worker handles Wi-Fi, NTP, timezone and weather requests. Time and weather track their results independently and retry after **1, 5 and 15 minutes** on failure. Recent temperature data expires after two hours. The colon reports the last Wi-Fi connection result; it does not confirm that NTP or weather succeeded.
 
-<img width="2744" height="1512" alt="20260814_113749" src="https://github.com/user-attachments/assets/baa21291-d857-48c5-8fe1-7e0899a7fff9" />
+See [version 3.6 technical notes](Source/README-3.6.md) and the [device validation checklist](docs/VALIDATION.md). The source layout and documentation update does not change firmware behavior or replace the existing release binaries.
 
-# Flashing the firmware:
-You need to flash the ESP32 C3 in arduino or using other ESP32 flashing solution with the compiled binary.
-If you are using the arduino ide you need to install ESP32 by Espressif in board manager then burn bootloader to the boards and then send the program with this board settings:
+## Contributing
 
-<img width="616" height="608" alt="Captura de pantalla 2026-10-22 152753" src="https://github.com/user-attachments/assets/72462af9-1677-4572-b6ab-506296b2d445" />
+Bug reports, build notes and improvements are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and include your PCB revision, firmware version and Arduino-ESP32 version when reporting a problem.
 
+## Credits and licensing
 
-Using Flash download tool:
-Download the tool: https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html
+Created by [LED-BOY](https://github.com/LED-BOY). Built with [Arduino-ESP32](https://github.com/espressif/arduino-esp32); weather data is provided by [Open-Meteo](https://open-meteo.com/), with IP-based location/timezone services from [ip-api](https://ip-api.com/) and [ipapi](https://ipapi.co/).
 
-Then select Develop, and the correct board in this case C3 and load mode UART.
-.<img width="302" height="291" alt="Captura de pantalla 2026-10-22 151827" src="https://github.com/user-attachments/assets/71c63a34-fcc9-4856-baad-7726d1dfac9b" />
-
-Select the merged .bin firmware and configure your com port and address 0x0000 then press start and wait to finish, you have to restart your board manually.
-
-<img width="523" height="858" alt="Captura de pantalla 2026-10-22 151845" src="https://github.com/user-attachments/assets/1335b5ff-ac59-4f1b-9661-26ab083455e4" />
-
-
-Once flashed you can use the clock portal to config and update the firmware, using the compiled binary in releases.
-
-# Portal Interface
-<img width="535" height="945" alt="Screenshot_20260817_114501_Chrome" src="https://github.com/user-attachments/assets/667816ad-a1a0-4d6b-9199-6a6ecc898a90" />
-
-
+No project license has been declared in this repository. Contact the author about permission to reuse or redistribute the code, PCB files, models or photographs. Third-party projects and services retain their own terms.

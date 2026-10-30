@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest a firmware, hardware or documentation improvement
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the user benefit, relevant PCB revisions and alternatives considered.
+    validations:
+      required: true

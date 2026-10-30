@@ -1,8 +1,8 @@
 # GemaLight ESP LED Clock 3.6
 
-Open `GemaLight_ESP_LED_clock_3.6.ino` from this folder in Arduino IDE.
-Use the same ESP32-C3 board settings and installed libraries as version 3.5.
-Keep `NetworkSync.cpp` and `NetworkSync.h` alongside the sketch.
+Open `GemaLight_ESP_LED_clock_3.6/GemaLight_ESP_LED_clock_3.6.ino` in Arduino IDE.
+Use the [documented ESP32-C3 board settings](../docs/FIRMWARE.md).
+Keep all `.cpp` and `.h` files alongside the sketch in that subfolder.
 
 ## Changes
 
@@ -43,7 +43,8 @@ Keep `NetworkSync.cpp` and `NetworkSync.h` alongside the sketch.
 ## Validation
 
 Source reviewed and checked for file consistency and balanced delimiters.
-Not compiled, uploaded, or tested on hardware, as requested.
+These original source-review notes do not establish a successful compilation,
+upload, or hardware test. See the [current validation checklist](../docs/VALIDATION.md).
 
 Suggested device checks after uploading:
 
