@@ -2,13 +2,13 @@
 
 A four-digit clock that turns translucent FR4 into an LED display. An ESP32-C3 drives charlieplexed LEDs to show the time and outdoor temperature, with a browser-based setup portal and wireless firmware updates.
 
-[![Firmware](https://img.shields.io/badge/firmware-3.6-2563eb)](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6)
+[![Firmware](https://img.shields.io/badge/firmware-3.8-2563eb)](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.8)
 [![Platform](https://img.shields.io/badge/platform-ESP32--C3-333333)](docs/FIRMWARE.md)
 [![Arduino](https://img.shields.io/badge/Arduino--ESP32-3.x-008184)](docs/FIRMWARE.md)
 
 **English** · [Español](README.es.md)
 
-[Get firmware](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6) · [Build the clock](docs/HARDWARE.md) · [Flash firmware](docs/FIRMWARE.md) · [Configure](docs/SETUP.md)
+[Get firmware](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.8) · [Build the clock](docs/HARDWARE.md) · [Flash firmware](docs/FIRMWARE.md) · [Configure](docs/SETUP.md)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/0c8ef493-8c9e-4351-bac5-b09b48d5e743" alt="GemaLight clock assembled with its translucent PCB display" width="900">
@@ -50,7 +50,7 @@ LEDs mounted sideways illuminate the FR4 board. Charlieplexing selects each segm
 
 | Location | Contents |
 | --- | --- |
-| [Source](Source/) | Arduino sketch and version 3.6 technical notes |
+| [Source](Source/) | Arduino sketch 3.8 and technical notes |
 | [PCB assembly](PCB%20assembly/) | Gerbers, BOMs, placement data and LED orientation |
 | [STL files](STL%20files/) | Case, diffuser and stand models |
 | [Schematic v1.7](schematic%20v1.7.png) | Circuit reference |
@@ -59,11 +59,17 @@ LEDs mounted sideways illuminate the FR4 board. Charlieplexing selects each segm
 | [Setup guide](docs/SETUP.md) | Everyday use and troubleshooting |
 | [Changelog](CHANGELOG.md) | Firmware history and repository improvements |
 
-## Firmware 3.6
+## Firmware 3.8
 
 A single FreeRTOS worker handles Wi-Fi, NTP, timezone and weather requests. Time and weather track their results independently and retry after **1, 5 and 15 minutes** on failure. Recent temperature data expires after two hours. The colon reports the last Wi-Fi connection result; it does not confirm that NTP or weather succeeded.
 
-See [version 3.6 technical notes](Source/README-3.6.md) and the [device validation checklist](docs/VALIDATION.md). The source layout and documentation update does not change firmware behavior or replace the existing release binaries.
+Version 3.8 integrates **constraint-optimized charlieplexing**. The planner selects GPIO states that cover each lit segment exactly once, within configured LED-count limits, and independently verifies the schedule before publishing it to the timer interrupt. Invalid schedules fall back to single-LED scanning.
+
+A fixed 28-quantum exposure frame makes per-segment timing consistent across digit patterns. Fractional pulse accumulation lets the colons follow low digit brightness without rounding small nonzero duties to zero. The project author's testing of the grouped configuration found more uniform, more natural-looking brightness and better colon tracking at low settings, with no noticeable increase in maximum brightness. These are qualitative observations, not calibrated optical measurements; the dimming improvements come from exposure timing and accumulation.
+
+**Release defaults:** grouping enabled (`COC_ENABLE_GROUPING=1`), at most two LEDs per group/source/sink, and automatic low brightness **150**. Grouping preserves the exposure budget rather than automatically raising brightness. Sparse patterns can be dimmer than in 3.6 at the same setting. LED-count limits are not electrical current regulation; other board configurations need electrical validation.
+
+Read the [constraint scan explanation](docs/CONSTRAINT_SCAN.md), [build instructions](docs/FIRMWARE.md), [3.6 background network notes](Source/README-3.6.md) and [validation status](docs/VALIDATION.md).
 
 ## Contributing
 

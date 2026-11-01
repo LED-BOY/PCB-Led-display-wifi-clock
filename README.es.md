@@ -4,7 +4,7 @@ Un reloj de cuatro dígitos que utiliza la translucidez del FR4 como pantalla. U
 
 [English](README.md) · **Español**
 
-[Descargar firmware](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6) · [Montaje](docs/HARDWARE.md) · [Instalación](docs/FIRMWARE.md) · [Configuración](docs/SETUP.md)
+[Descargar firmware](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.8) · [Montaje](docs/HARDWARE.md) · [Instalación](docs/FIRMWARE.md) · [Configuración](docs/SETUP.md)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/0c8ef493-8c9e-4351-bac5-b09b48d5e743" alt="Reloj GemaLight con pantalla de PCB translúcido" width="900">
@@ -47,7 +47,7 @@ La hora y la temperatura alternan cada 10 segundos cuando la opción de temperat
 
 | Recurso | Contenido |
 | --- | --- |
-| [Código Arduino](Source/GemaLight_ESP_LED_clock_3.6/) | Sketch 3.6 con todos sus archivos auxiliares |
+| [Código Arduino](Source/GemaLight_ESP_LED_clock_3.8/) | Sketch 3.8 con todos sus archivos auxiliares |
 | [Montaje de PCB](PCB%20assembly/) | Gerbers, listas de materiales y orientación de LED |
 | [Modelos STL](STL%20files/) | Carcasa, difusor y soporte |
 | [Esquema v1.7](schematic%20v1.7.png) | Referencia del circuito |
@@ -55,10 +55,16 @@ La hora y la temperatura alternan cada 10 segundos cuando la opción de temperat
 | [Configuración](docs/SETUP.md) | Opciones y solución de problemas, en inglés |
 | [Historial](CHANGELOG.md) | Versiones y cambios del repositorio |
 
-## Versión 3.6
+## Versión 3.8
 
 Una tarea FreeRTOS gestiona las conexiones de red. NTP y clima conservan resultados separados y reintentan tras 1, 5 y 15 minutos cuando fallan. Un fallo de sincronización no reinicia un reloj que ya está funcionando. Consulta las [notas técnicas](Source/README-3.6.md) y la [lista de comprobaciones en hardware](docs/VALIDATION.md).
 
 ## Autor y licencia
 
 Proyecto de [LED-BOY](https://github.com/LED-BOY), basado en Arduino-ESP32 y datos meteorológicos de Open-Meteo. El repositorio todavía no declara una licencia. Consulta al autor sobre permisos de reutilización o distribución del código, PCB, modelos y fotografías.
+
+## Charlieplexado optimizado por restricciones
+
+La versión 3.8 integra un planificador con verificación independiente y una exposición fija de 28 intervalos. La acumulación fraccionaria de pulsos permite que los dos puntos sigan mejor el brillo de los dígitos a niveles bajos. En las pruebas cualitativas del autor, el brillo se percibe más uniforme y natural, sin un aumento apreciable del brillo máximo.
+
+Se conserva la configuración probada por el autor: agrupación activada (`COC_ENABLE_GROUPING=1`), hasta dos LED por grupo/origen/destino y brillo automático bajo de **150**. Los límites cuentan LED; no regulan la corriente eléctrica. La agrupación no aumenta automáticamente la exposición. Consulta la [explicación técnica](docs/CONSTRAINT_SCAN.md) y el [estado de validación](docs/VALIDATION.md).

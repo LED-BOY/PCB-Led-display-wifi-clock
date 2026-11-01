@@ -2,7 +2,9 @@
 
 #include <Arduino.h>
 #include <driver/gpio.h>
-#include <deafultValues.h>
+#include "deafultValues.h"
+#include "ConstraintScan.h"
+#include "ConstraintScanConfig.h"
 
 // =========================
 // CONFIG
@@ -13,16 +15,6 @@
 
 // Colon LEDs have their anodes on GPIO 0 and cathodes tied to GND.
 #define COLON_PIN 0
-
-struct LedPair {
-  uint8_t hi;
-  uint8_t lo;
-};
-
-struct StepEntry {
-  uint8_t digit;
-  uint8_t segment;
-};
 
 class CharlieDisplay {
 
@@ -42,12 +34,14 @@ public:
 
   friend void IRAM_ATTR onTimer();
 
-private:
+  struct ScanStats {
+    uint8_t lit, groups;
+    uint32_t searchNodes;
+    bool optimal, fallback, groupingEnabled;
+  };
+  ScanStats getScanStats();
 
-  // =========================
-  // LED pin-pair mapping
-  // =========================
-  LedPair map[DIGITS][SEGMENTS];
+private:
 
   // =========================
   // Seven-segment font
@@ -108,8 +102,14 @@ private:
   // =========================
   volatile uint8_t charBuffer[DIGITS] = { 0 };
 
-  StepEntry activeTable[MAX_ACTIVE];
+  // Double-buffered immutable ISR plans. Only the main task builds plans.
+  coc::Planner planner;
+  coc::Slot scanSlots[2][MAX_ACTIVE]{};
+  volatile uint8_t publishedPlan = 0;
+  uint32_t publishedTarget = 0xFFFFFFFFu;
+  ScanStats scanStats{};
   volatile uint8_t activeCount = 0;
+  void publishCharacters(const uint8_t chars[DIGITS]);
 
   // =========================
   // Brightness state (pulse-density modulation)
@@ -126,16 +126,15 @@ private:
   volatile uint16_t colonBlinkTicks = 0;
   // Same 0-255, gamma-corrected scale as setBrightness().
   volatile uint8_t colonBrightnessLevel;
-  // Internal 0-64 PWM duty, compensated for digit multiplexing.
+  // Gamma increment (0-64); accumulator denominator is 64*28.
   volatile uint8_t colonBrightness;
-  volatile uint8_t colonPwmCounter;  // PWM accumulator, 0-63
+  volatile uint16_t colonPwmCounter;  // accumulator, 0-(64*28-1)
 
   // =========================
   // ISR
   // =========================
   volatile uint8_t isrStep = 0;
-  volatile int prevHi = -1;
-  volatile int prevLo = -1;
+  volatile uint8_t drivenPins = 0;
 
   // =========================
   // TIMER

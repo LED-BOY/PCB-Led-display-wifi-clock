@@ -3,7 +3,7 @@
 // =======================
 // firmware version
 // =======================
-static constexpr const char* FIRMWARE_VERSION = "3.6";
+static constexpr const char* FIRMWARE_VERSION = "3.8";
 
 // =======================
 // CPU Frequency
@@ -27,7 +27,7 @@ constexpr uint32_t WEATHER_FRESHNESS_MS = 7200000UL;
 // Display
 // =======================
 
-constexpr uint8_t AUTO_BRIGHTNESS_LOW = 160;
+constexpr uint8_t AUTO_BRIGHTNESS_LOW = 150;
 constexpr uint8_t AUTO_BRIGHTNESS_HIGH = 240;
 constexpr uint8_t BOOST_BRIGHTNESS_HIGH = 255;
 constexpr uint8_t DEFAULT_BRIGHTNESS = AUTO_BRIGHTNESS_HIGH;

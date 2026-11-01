@@ -1,0 +1,72 @@
+name: Constraint scan firmware
+on:
+  push:
+    branches: [main, release/3.8, feature/constraint-optimized-charlieplexing]
+    tags: ['v3.8']
+  pull_request:
+    paths:
+      - 'Source/**'
+      - 'tests/**'
+      - '.github/workflows/constraint-scan.yml'
+permissions:
+  contents: read
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tests/run-host-tests.sh
+  esp32c3:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        grouping: ['0', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install documented ESP32 core
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Compile firmware
+        run: >-
+          arduino-cli compile
+          --fqbn 'esp32:esp32:esp32c3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=160,FlashFreq=80,FlashMode=qio,FlashSize=4M,PartitionScheme=min_spiffs,DebugLevel=none'
+          --build-property 'compiler.cpp.extra_flags=-DCOC_ENABLE_GROUPING=${{ matrix.grouping }}'
+          --output-dir build/firmware
+          Source/GemaLight_ESP_LED_clock_3.8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GemaLight-coc-grouping-${{ matrix.grouping }}
+          path: build/firmware/*.bin
+          if-no-files-found: error
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [host-tests, esp32c3]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: GemaLight-coc-grouping-1
+          path: release
+      - name: Package source and provenance
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          git archive --format=zip --prefix=GemaLight-3.8/ -o release/GemaLight-3.8-source.zip HEAD
+          printf 'Tag: %s\nCommit: %s\nArduino-ESP32: 3.3.12\nBoard: ESP32-C3; 4MB QIO; min_spiffs; CPUFreq=160; CDCOnBoot=default\nCOC_ENABLE_GROUPING=1\nAUTO_BRIGHTNESS_LOW=150\nWorkflow: https://github.com/%s/actions/runs/%s\n' "$RELEASE_TAG" "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > release/BUILD-INFO.txt
+          cd release
+          sha256sum *.bin *.zip BUILD-INFO.txt > SHA256SUMS.txt
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$RELEASE_TAG" release/*
+          --verify-tag
+          --title 'GemaLight 3.8 — Constraint-optimized charlieplexing'
+          --notes-file docs/RELEASE-3.8.md
+          --latest

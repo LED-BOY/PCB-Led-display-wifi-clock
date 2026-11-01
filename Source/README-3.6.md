@@ -1,6 +1,6 @@
 # GemaLight ESP LED Clock 3.6
 
-Open `GemaLight_ESP_LED_clock_3.6/GemaLight_ESP_LED_clock_3.6.ino` in Arduino IDE.
+Open `GemaLight_ESP_LED_clock_3.8/GemaLight_ESP_LED_clock_3.8.ino` in Arduino IDE.
 Use the [documented ESP32-C3 board settings](../docs/FIRMWARE.md).
 Keep all `.cpp` and `.h` files alongside the sketch in that subfolder.
 
