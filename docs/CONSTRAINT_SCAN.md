@@ -2,7 +2,7 @@
 
 Firmware `3.8` is integrated into main in the
 `Source/GemaLight_ESP_LED_clock_3.8/` sketch folder. It preserves the v1.7
-GPIO mapping, portal, time/weather services and OTA interface. It is an
+GPIO mapping, portal, time/weather services and OTA interface. It is a
 bounded scheduling implementation, not a claim of a new electrical
 multiplexing method or an established hardware improvement.
 
@@ -78,7 +78,7 @@ Colon accumulation uses the same denominator without rounding small duty
 values to zero. Relative optical colon brightness still needs calibration.
 
 This deliberately changes v3.6 brightness behavior: v3.6 divides exposure
-among only the lit segments, so sparse patterns are brighter. This branch
+among only the lit segments, so sparse patterns are brighter. Firmware 3.8
 normalizes to the 28-segment case; sparse patterns will be dimmer at the same
 setting. At low duty, individual pulses may still be visible or show camera
 banding. This is not a flicker-free or higher-resolution dimming claim.
@@ -129,7 +129,7 @@ alternative single-LED build; `grouping-1` matches the 3.8 release defaults.
 Use an application `.ino.bin` for portal OTA; a `.ino.merged.bin` is for initial
 USB flashing at address 0x0000. Tagged releases package the grouping-1 firmware, source, checksums and provenance.
 
-Local validation: the host suite passed, and the default firmware compiled
+Historical feature-branch validation: the host suite passed, and the default firmware compiled
 with Arduino-ESP32 3.3.12 for ESP32-C3 using the documented settings (1,196,293
 bytes of flash; 44,952 bytes of static RAM). The grouped configuration also compiled successfully (1,196,301 bytes of flash;
 44,952 bytes of static RAM). Planner tests passed with AddressSanitizer and

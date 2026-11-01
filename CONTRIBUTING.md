@@ -9,7 +9,7 @@ Remove Wi-Fi passwords, public IP addresses and other personal data from logs an
 ## Propose a change
 
 1. Start from the current default branch and keep each change focused.
-2. Keep firmware files together in `Source/GemaLight_ESP_LED_clock_3.6/`. Do not commit build outputs, local IDE settings or credentials.
+2. Keep firmware files together in `Source/GemaLight_ESP_LED_clock_3.8/`. Do not commit build outputs, local IDE settings or credentials.
 3. Follow the existing code style. Do not change the display GPIO mapping without checking the hardware revision.
 4. For firmware changes, compile with the [documented settings](docs/FIRMWARE.md) and run the relevant [device checks](docs/VALIDATION.md).
 5. State exactly what was compiled or tested on hardware and what remains untested. For documentation-only changes, check links and factual consistency.
