@@ -2,6 +2,11 @@
 
 [Home](../README.md) · [Hardware](HARDWARE.md) · [Setup](SETUP.md)
 
+> This development branch also contains `3.7-coc-experimental` source.
+> See [constraint scanning](CONSTRAINT_SCAN.md) for its opt-in grouped build,
+> brightness changes and electrical validation requirements. The v3.6 downloads
+> below remain the existing firmware and do not include this experiment.
+
 ## Choose the correct binary
 
 Download the files from the [v3.6 release](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6).

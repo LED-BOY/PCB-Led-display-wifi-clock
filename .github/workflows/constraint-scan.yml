@@ -1,0 +1,41 @@
+name: Constraint scan firmware
+on:
+  push:
+    branches: [feature/constraint-optimized-charlieplexing]
+  pull_request:
+    paths:
+      - 'Source/**'
+      - 'tests/**'
+      - '.github/workflows/constraint-scan.yml'
+permissions:
+  contents: read
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tests/run-host-tests.sh
+  esp32c3:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        grouping: ['0', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install documented ESP32 core
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Compile experimental firmware
+        run: >-
+          arduino-cli compile
+          --fqbn 'esp32:esp32:esp32c3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=160,FlashFreq=80,FlashMode=qio,FlashSize=4M,PartitionScheme=min_spiffs,DebugLevel=none'
+          --build-property 'compiler.cpp.extra_flags=-DCOC_ENABLE_GROUPING=${{ matrix.grouping }}'
+          --output-dir build/firmware
+          Source/GemaLight_ESP_LED_clock_3.6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GemaLight-coc-grouping-${{ matrix.grouping }}
+          path: build/firmware/*.bin
+          if-no-files-found: error

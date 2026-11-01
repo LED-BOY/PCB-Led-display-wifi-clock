@@ -2,6 +2,21 @@
 
 Firmware versions and repository maintenance are tracked separately.
 
+## 3.7-coc-experimental — 2026-10-31
+
+- Added a bounded constraint planner, independent schedule verification and
+  single-LED fallback using the existing v1.7 mapping.
+- Added opt-in grouped driving with total/source/sink LED-count constraints;
+  simultaneous driving stays disabled on the uncharacterized circuit.
+- Moved planning outside the ISR and added immutable double-buffered pin masks,
+  output-latch preloading and mapped-pin initialization.
+- Normalized per-segment exposure to a fixed 28-quantum frame and used fractional
+  colon accumulation; sparse displays are dimmer than v3.6 at equal settings.
+- Added read-only portal diagnostics at `/display-scan`, portable planner/driver
+  tests and ESP32-C3 CI builds for both configurations.
+- Electrical behavior, optical output and interrupt timing remain untested on
+  hardware. See [the experiment notes](docs/CONSTRAINT_SCAN.md).
+
 ## Repository maintenance — 2026-10-30
 
 - Reworked the project homepage with existing photographs, navigation and feature descriptions.

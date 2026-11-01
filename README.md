@@ -1,5 +1,10 @@
 # GemaLight · PCB LED Wi-Fi Clock
 
+> **Experimental branch:** includes `3.7-coc-experimental` constraint-optimized
+> scanning. Grouped driving is OFF by default pending electrical validation.
+> Read [the experiment, build settings and validation](docs/CONSTRAINT_SCAN.md).
+> Existing v3.6 release binaries do not include these changes.
+
 A four-digit clock that turns translucent FR4 into an LED display. An ESP32-C3 drives charlieplexed LEDs to show the time and outdoor temperature, with a browser-based setup portal and wireless firmware updates.
 
 [![Firmware](https://img.shields.io/badge/firmware-3.6-2563eb)](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6)

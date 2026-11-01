@@ -2,10 +2,6 @@
 
 CharlieDisplay display;
 
-// =========================
-// Gamma lookup table
-// 2.2 gamma, output 0..64 PWM slots
-// =========================
 static const uint8_t gammaTable[256] = {
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
@@ -25,300 +21,161 @@ static const uint8_t gammaTable[256] = {
   56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63, 64
 };
 
-// A digit LED is selected once per activeTable cycle, while the colon is
-// available on every ISR pass. Reduce its duty to match a digit LED's output.
-static inline uint8_t colonDutyForLevel(uint8_t level, uint8_t activeCount) {
-  if (activeCount == 0) return 0;
 
-  const uint8_t duty = gammaTable[level];
-  return (duty + activeCount / 2) / activeCount;  // nearest available PWM step
+// Fixed 28-quanta exposure budget: each lit segment receives one quantum.
+// Idle quanta retain the same per-segment duty when grouping reduces slots.
+static constexpr uint16_t kColonDenominator = 64 * MAX_ACTIVE;
+// Keep the ISR lookup in RAM rather than flash-backed constant storage.
+static DRAM_ATTR uint8_t scanGpio[coc::kPins] = {
+  coc::kGpio[0], coc::kGpio[1], coc::kGpio[2],
+  coc::kGpio[3], coc::kGpio[4], coc::kGpio[5]
+};
+
+static inline void IRAM_ATTR releasePins(uint8_t mask) {
+  for (uint8_t p = 0; p < coc::kPins; ++p)
+    if (mask & (1u << p))
+      gpio_set_direction((gpio_num_t)scanGpio[p], GPIO_MODE_INPUT);
 }
 
-// =========================
-// GPIO
-// =========================
-static inline void fastHigh(int pin) {
-  gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT);
-  gpio_set_level((gpio_num_t)pin, 1);
-}
-
-static inline void fastLow(int pin) {
-  gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT);
-  gpio_set_level((gpio_num_t)pin, 0);
-}
-
-static inline void fastHiZ(int pin) {
-  gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT);
-}
-
-// =========================
-// Release the previously driven LED pair.
-// =========================
-static inline void IRAM_ATTR turnOff(volatile int &hi, volatile int &lo) {
-  if (hi >= 0) fastHiZ(hi);
-  if (lo >= 0) fastHiZ(lo);
-  hi = -1;
-  lo = -1;
-}
-
-// =========================
-// ISR
-// =========================
 void IRAM_ATTR onTimer() {
-
   portENTER_CRITICAL_ISR(&display.timerMux);
-
-  // =====================================
-  // Colon PWM (independent)
-  // =====================================
-  uint8_t colonPwm = display.colonPwmCounter + display.colonBrightness;
-  bool colonPulse = colonPwm >= 64;
-  display.colonPwmCounter = colonPulse ? colonPwm - 64 : colonPwm;
-
-  // Spread the ON pulses across the PWM cycle instead of grouping them
-  // together. This removes the visible 156 Hz flash at low brightness.
-  if (display.colonBlink && ++display.colonBlinkTicks >= 25000) {
+  const uint16_t colonSum = display.colonPwmCounter + display.colonBrightness;
+  const bool colonPulse = colonSum >= kColonDenominator;
+  display.colonPwmCounter = colonPulse ? colonSum - kColonDenominator : colonSum;
+  if (display.colonBlink && ++display.colonBlinkTicks >= 25000)
     display.colonBlinkTicks = 0;
-  }
-  bool colonVisible = !display.colonBlink || display.colonBlinkTicks < 12500;
+  const bool colonVisible = !display.colonBlink || display.colonBlinkTicks < 12500;
+  gpio_set_level((gpio_num_t)COLON_PIN,
+                 display.colonEnabled && colonVisible && colonPulse);
 
-  if (display.colonEnabled && colonVisible && colonPulse) {
-
-    fastHigh(COLON_PIN);
-
-  } else {
-
-    fastLow(COLON_PIN);
-  }
-
-  // =====================================
-  // Display PWM
-  // =====================================
-  turnOff(display.prevHi, display.prevLo);
-
-  uint8_t displayPwm = display.frame + display.effectiveDuty;
-  bool displayPulse = displayPwm >= 64;
-  display.frame = displayPulse ? displayPwm - 64 : displayPwm;
-
-  // Pulse-density modulation keeps the same average brightness while
-  // avoiding a long OFF interval that makes all digits visibly blink.
-  if (!displayPulse) {
+  // Break before make: all formerly driven outputs become high impedance.
+  releasePins(display.drivenPins);
+  display.drivenPins = 0;
+  const uint8_t sum = display.frame + display.effectiveDuty;
+  const bool pulse = sum >= 64;
+  display.frame = pulse ? sum - 64 : sum;
+  if (!pulse) {
     portEXIT_CRITICAL_ISR(&display.timerMux);
     return;
   }
-
-  asm volatile(
-    "nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n");
-
-  // Nothing to display
-  if (display.activeCount == 0) {
-    portEXIT_CRITICAL_ISR(&display.timerMux);
-    return;
-  }
-
-  StepEntry step = display.activeTable[display.isrStep];
-
-  if (display.font[display.charBuffer[step.digit]][step.segment]) {
-
-    auto l = display.map[step.digit][step.segment];
-
-    fastHigh(l.hi);
-    fastLow(l.lo);
-
-    display.prevHi = l.hi;
-    display.prevLo = l.lo;
-  }
-
-  display.isrStep++;
-
-  if (display.isrStep >= display.activeCount) {
-    display.isrStep = 0;
-  }
-
+  const coc::Slot& slot = display.scanSlots[display.publishedPlan][display.isrStep];
+  // Preload ALL output latches while outputs remain disabled. This avoids
+  // briefly driving a pin with its previous slot's polarity.
+  for (uint8_t p = 0; p < coc::kPins; ++p)
+    if ((slot.high | slot.low) & (1u << p))
+      gpio_set_level((gpio_num_t)scanGpio[p], (slot.high >> p) & 1u);
+  asm volatile("nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n");
+  // Enable sinks first, then sources. Unused pins stay high impedance.
+  for (uint8_t p = 0; p < coc::kPins; ++p)
+    if (slot.low & (1u << p))
+      gpio_set_direction((gpio_num_t)scanGpio[p], GPIO_MODE_OUTPUT);
+  for (uint8_t p = 0; p < coc::kPins; ++p)
+    if (slot.high & (1u << p))
+      gpio_set_direction((gpio_num_t)scanGpio[p], GPIO_MODE_OUTPUT);
+  display.drivenPins = slot.high | slot.low;
+  if (++display.isrStep >= MAX_ACTIVE) display.isrStep = 0;
   portEXIT_CRITICAL_ISR(&display.timerMux);
 }
 
-// -------------------------------------------------
 CharlieDisplay::CharlieDisplay() {
-
-  map[0][0] = { 1, 3 };
-  map[0][1] = { 1, 4 };
-  map[0][2] = { 1, 5 };
-  map[0][3] = { 1, 6 };
-  map[0][4] = { 1, 7 };
-  map[0][5] = { 3, 1 };
-  map[0][6] = { 5, 1 };
-
-  map[1][0] = { 3, 4 };
-  map[1][1] = { 3, 5 };
-  map[1][2] = { 3, 6 };
-  map[1][3] = { 3, 7 };
-  map[1][4] = { 4, 3 };
-  map[1][5] = { 5, 3 };
-  map[1][6] = { 6, 3 };
-
-  map[2][0] = { 4, 5 };
-  map[2][1] = { 4, 6 };
-  map[2][2] = { 4, 7 };
-  map[2][3] = { 5, 4 };
-  map[2][4] = { 6, 4 };
-  map[2][5] = { 7, 4 };
-  map[2][6] = { 5, 6 };
-
-  map[3][0] = { 5, 7 };
-  map[3][1] = { 6, 5 };
-  map[3][2] = { 7, 5 };
-  map[3][3] = { 6, 7 };
-  map[3][4] = { 7, 6 };
-  map[3][5] = { 6, 1 };
-  map[3][6] = { 4, 1 };
-
   brightness = 120;
-  effectiveDuty = 120;
+  effectiveDuty = gammaTable[brightness];
   colonBrightnessLevel = 255;
-  colonBrightness = 63;  // full brightness until the first display update
+  colonBrightness = 0;
   colonPwmCounter = 0;
+}
 
-  activeCount = 0;
-  isrStep = 0;
+void CharlieDisplay::begin() {
+  releasePins(63);
+  for (uint8_t p = 0; p < coc::kPins; ++p)
+    gpio_set_pull_mode((gpio_num_t)scanGpio[p], GPIO_FLOATING);
+  gpio_set_level((gpio_num_t)COLON_PIN, 0);
+  gpio_set_direction((gpio_num_t)COLON_PIN, GPIO_MODE_OUTPUT);
+  timer = timerBegin(1000000);
+  timerAttachInterrupt(timer, &onTimer);
+  timerAlarm(timer, 40, true, 0);
+}
 
-  prevHi = -1;
-  prevLo = -1;
-
-  colonEnabled = true;
-  colonBlink = false;
-  colonBlinkTicks = 0;
-
-  for (int i = 0; i < DIGITS; i++) {
-    charBuffer[i] = 0;
-  }
+void CharlieDisplay::setBrightness(uint8_t level) {
+  portENTER_CRITICAL(&timerMux);
+  brightness = level;
+  effectiveDuty = gammaTable[level];
+  portEXIT_CRITICAL(&timerMux);
 }
 
 void CharlieDisplay::setColonBrightness(uint8_t level) {
   portENTER_CRITICAL(&timerMux);
   colonBrightnessLevel = level;
-  colonBrightness = colonDutyForLevel(level, activeCount);
+  colonBrightness = activeCount ? gammaTable[level] : 0;
   portEXIT_CRITICAL(&timerMux);
 }
 
-// -------------------------------------------------
-void CharlieDisplay::begin() {
-
-  for (int p = 2; p <= 7; p++) {
-    fastHiZ(p);
-  }
-
-  fastLow(COLON_PIN);
-
-  timer = timerBegin(1000000);
-  timerAttachInterrupt(timer, &onTimer);
-
-  timerAlarm(timer, 40, true, 0);  // trigger every 40 us
-}
-
-// -------------------------------------------------
-void CharlieDisplay::setBrightness(uint8_t level) {
-
+CharlieDisplay::ScanStats CharlieDisplay::getScanStats() {
   portENTER_CRITICAL(&timerMux);
-
-  brightness = level;
-  effectiveDuty = gammaTable[level];
-  colonBrightness = colonDutyForLevel(colonBrightnessLevel, activeCount);
-
+  ScanStats result = scanStats;
   portEXIT_CRITICAL(&timerMux);
+  return result;
 }
 
-// -------------------------------------------------
-void CharlieDisplay::update(struct tm *t) {
+void CharlieDisplay::publishCharacters(const uint8_t chars[DIGITS]) {
+  uint32_t target = 0;
+  for (uint8_t d = 0; d < DIGITS; ++d)
+    if (chars[d] < 39)
+      for (uint8_t s = 0; s < SEGMENTS; ++s)
+        if (font[chars[d]][s]) target |= uint32_t(1) << (d * SEGMENTS + s);
+  if (target == publishedTarget) return;
 
+  coc::Limits limits;
+  if (COC_ENABLE_GROUPING) {
+    limits.total = COC_MAX_SIMULTANEOUS_LEDS;
+    limits.perSource = COC_MAX_LEDS_PER_SOURCE;
+    limits.perSink = COC_MAX_LEDS_PER_SINK;
+  }
+  limits.searchNodes = COC_SEARCH_NODE_LIMIT;
+  coc::Plan plan = planner.build(target, limits);
+  bool fallback = !coc::verify(plan, target, limits);
+  if (fallback) {
+    limits.total = limits.perSource = limits.perSink = 1;
+    plan = planner.build(target, limits);
+  }
+  // A failed fallback publishes a blank frame rather than an unchecked plan.
+  if (!coc::verify(plan, target, limits)) plan = coc::Plan{};
+  const uint8_t next = publishedPlan ^ 1u;
+  for (uint8_t q = 0; q < MAX_ACTIVE; ++q) scanSlots[next][q] = coc::Slot{};
+  for (uint8_t i = 0; i < plan.count; ++i) {
+    const uint8_t quantum = uint16_t(i) * MAX_ACTIVE / plan.count;
+    scanSlots[next][quantum] = plan.slots[i];
+  }
   portENTER_CRITICAL(&timerMux);
-
-  int h = t->tm_hour;
-  int m = t->tm_min;
-
-  if (h == 0) {
-    charBuffer[0] = -1;
-    charBuffer[1] = charToIndex('0');
-  } else if (h < 10) {
-    charBuffer[0] = -1;
-    charBuffer[1] = charToIndex('0' + h);
-  } else {
-    charBuffer[0] = charToIndex('0' + (h / 10));
-    charBuffer[1] = charToIndex('0' + (h % 10));
-  }
-
-  charBuffer[2] = charToIndex('0' + (m / 10));
-  charBuffer[3] = charToIndex('0' + (m % 10));
-
-  uint8_t idx = 0;
-
-  for (int d = 0; d < DIGITS; d++) {
-
-    if ((int8_t)charBuffer[d] < 0) continue;
-
-    for (int s = 0; s < SEGMENTS; s++) {
-
-      if (font[charBuffer[d]][s]) {
-
-        if (idx < MAX_ACTIVE) {
-          activeTable[idx++] = { (uint8_t)d, (uint8_t)s };
-        }
-      }
-    }
-  }
-
-  activeCount = idx;
-
-  effectiveDuty = gammaTable[brightness];
-  colonBrightness = colonDutyForLevel(colonBrightnessLevel, activeCount);
-
+  publishedPlan = next;
+  publishedTarget = target;
+  activeCount = plan.lit;
+  scanStats = {plan.lit, plan.count, plan.nodes, plan.optimal,
+               fallback || plan.fallback, COC_ENABLE_GROUPING != 0};
+  for (uint8_t d = 0; d < DIGITS; ++d) charBuffer[d] = chars[d];
+  colonBrightness = activeCount ? gammaTable[colonBrightnessLevel] : 0;
   isrStep = 0;
-
   portEXIT_CRITICAL(&timerMux);
 }
 
-// -------------------------------------------------
-void CharlieDisplay::print(const char *str) {
-
-  portENTER_CRITICAL(&timerMux);
-
-  for (int i = 0; i < DIGITS; i++) {
-    charBuffer[i] = 255;
-  }
-
-  for (int i = 0; i < DIGITS; i++) {
-    if (str[i] == '\0') break;
-    charBuffer[i] = charToIndex(str[i]);
-  }
-
-  uint8_t idx = 0;
-
-  for (int d = 0; d < DIGITS; d++) {
-
-    if (charBuffer[d] == 255) continue;
-
-    for (int s = 0; s < SEGMENTS; s++) {
-
-      if (font[charBuffer[d]][s]) {
-
-        if (idx < MAX_ACTIVE) {
-          activeTable[idx++] = { (uint8_t)d, (uint8_t)s };
-        }
-      }
-    }
-  }
-
-  activeCount = idx;
-
-  effectiveDuty = gammaTable[brightness];
-  colonBrightness = colonDutyForLevel(colonBrightnessLevel, activeCount);
-
-  isrStep = 0;
-
-  portEXIT_CRITICAL(&timerMux);
+void CharlieDisplay::update(struct tm* t) {
+  if (!t) return;
+  const int h = t->tm_hour, m = t->tm_min;
+  const uint8_t chars[DIGITS] = {
+    uint8_t(h < 10 ? 255 : charToIndex('0' + h / 10)),
+    charToIndex('0' + h % 10), charToIndex('0' + m / 10),
+    charToIndex('0' + m % 10)
+  };
+  publishCharacters(chars);
 }
 
-// -------------------------------------------------
+void CharlieDisplay::print(const char* str) {
+  uint8_t chars[DIGITS] = {255,255,255,255};
+  if (str)
+    for (uint8_t i = 0; i < DIGITS && str[i]; ++i) chars[i] = charToIndex(str[i]);
+  publishCharacters(chars);
+}
+
 void CharlieDisplay::setColon(bool on) {
 
   portENTER_CRITICAL(&timerMux);
@@ -326,7 +183,7 @@ void CharlieDisplay::setColon(bool on) {
   colonEnabled = on;
 
   if (!on) {
-    fastLow(COLON_PIN);
+    gpio_set_level((gpio_num_t)COLON_PIN, 0);
   }
 
   portEXIT_CRITICAL(&timerMux);

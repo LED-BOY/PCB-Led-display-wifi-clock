@@ -3,7 +3,7 @@
 // =======================
 // firmware version
 // =======================
-static constexpr const char* FIRMWARE_VERSION = "3.6";
+static constexpr const char* FIRMWARE_VERSION = "3.7-coc-experimental";
 
 // =======================
 // CPU Frequency

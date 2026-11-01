@@ -251,6 +251,23 @@ void WiFiManager::startPortalAsync() {
   bool savedNetworkFound = false;
   const String networkOptions = scanNetworkOptions(ssidSaved, savedNetworkFound);
 
+  server.on("/display-scan", HTTP_GET, [this]() {
+    const auto stats = display.getScanStats();
+    String json = "{\"firmware\":\"";
+    json += FIRMWARE_VERSION;
+    json += "\",\"groupingEnabled\":";
+    json += stats.groupingEnabled ? "true" : "false";
+    json += ",\"litSegments\":" + String(stats.lit);
+    json += ",\"drivenGroups\":" + String(stats.groups);
+    json += ",\"exposureQuanta\":28,\"searchNodes\":" + String(stats.searchNodes);
+    json += ",\"optimalInDigitalModel\":";
+    json += stats.optimal ? "true" : "false";
+    json += ",\"fallback\":";
+    json += stats.fallback ? "true}" : "false}";
+    server.sendHeader("Cache-Control", "no-store");
+    server.send(200, "application/json", json);
+  });
+
   server.on("/scan", HTTP_GET, [this]() {
     bool ignored = false;
     bool scanSucceeded = false;
