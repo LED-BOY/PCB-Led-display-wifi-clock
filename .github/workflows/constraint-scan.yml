@@ -64,9 +64,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          gh release create "$RELEASE_TAG" release/*
-          --verify-tag
-          --title 'GemaLight 3.8 — Constraint-optimized charlieplexing'
-          --notes-file docs/RELEASE-3.8.md
-          --latest
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release/* --clobber
+            gh release edit "$RELEASE_TAG" --notes-file docs/RELEASE-3.8.md --latest
+          else
+            gh release create "$RELEASE_TAG" release/* --verify-tag --title 'GemaLight 3.8 — Constraint-optimized charlieplexing' --notes-file docs/RELEASE-3.8.md --latest
+          fi
