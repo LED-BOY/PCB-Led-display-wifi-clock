@@ -41,33 +41,41 @@ jobs:
           path: build/firmware/*.bin
           if-no-files-found: error
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: [host-tests, esp32c3]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Check whether 3.8 is already published
+        id: release-status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v3.8 >/dev/null 2>&1; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/download-artifact@v4
+        if: steps.release-status.outputs.publish == 'true'
         with:
           name: GemaLight-coc-grouping-1
           path: release
       - name: Package source and provenance
+        if: steps.release-status.outputs.publish == 'true'
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: v3.8
         run: |
           git archive --format=zip --prefix=GemaLight-3.8/ -o release/GemaLight-3.8-source.zip HEAD
           printf 'Tag: %s\nCommit: %s\nArduino-ESP32: 3.3.12\nBoard: ESP32-C3; 4MB QIO; min_spiffs; CPUFreq=160; CDCOnBoot=default\nCOC_ENABLE_GROUPING=1\nAUTO_BRIGHTNESS_LOW=150\nWorkflow: https://github.com/%s/actions/runs/%s\n' "$RELEASE_TAG" "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > release/BUILD-INFO.txt
           cd release
           sha256sum *.bin *.zip BUILD-INFO.txt > SHA256SUMS.txt
       - name: Publish GitHub release
+        if: steps.release-status.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: v3.8
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" release/* --clobber
-            gh release edit "$RELEASE_TAG" --notes-file docs/RELEASE-3.8.md --latest
-          else
-            gh release create "$RELEASE_TAG" release/* --verify-tag --title 'GemaLight 3.8 — Constraint-optimized charlieplexing' --notes-file docs/RELEASE-3.8.md --latest
-          fi
+          gh release create "$RELEASE_TAG" release/* --target "$GITHUB_SHA" --title 'GemaLight 3.8 — Constraint-optimized charlieplexing' --notes-file docs/RELEASE-3.8.md --latest
