@@ -2,16 +2,19 @@
 
 [Home](../README.md) · [Hardware](HARDWARE.md) · [Setup](SETUP.md)
 
+> Firmware 3.8 enables constraint grouping by default and uses automatic low brightness 150.
+> See [constraint scanning](CONSTRAINT_SCAN.md) for timing, limits and hardware observations.
+
 ## Choose the correct binary
 
-Download the files from the [v3.6 release](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.6).
+Download the files from the [v3.8 release](https://github.com/LED-BOY/PCB-Led-display-wifi-clock/releases/tag/v3.8).
 
 | File | Use |
 | --- | --- |
-| `GemaLight_ESP_LED_clock_3.6.ino.merged.bin` | Initial USB installation with Espressif Flash Download Tool at address `0x0000` |
-| `GemaLight_ESP_LED_clock_3.6.ino.bin` | Application update through the clock's Firmware Update portal |
+| `GemaLight_ESP_LED_clock_3.8.ino.merged.bin` | Initial USB installation with Espressif Flash Download Tool at address `0x0000` |
+| `GemaLight_ESP_LED_clock_3.8.ino.bin` | Application update through the clock's Firmware Update portal |
 
-The merged image includes bootloader/partition data. Select the application image when updating from the portal. Existing release binaries are retained; this repository documentation update does not rebuild them or establish that they match the current source commit.
+The merged image includes bootloader/partition data. Select the application image when updating from the portal. Release 3.8 images are built from the tagged source by GitHub Actions after host tests and both grouping configurations compile. The release includes source, SHA-256 checksums and build provenance. Historical 3.6 assets remain on their original release.
 
 ## Arduino IDE
 
@@ -21,8 +24,8 @@ The merged image includes bootloader/partition data. Select the application imag
    https://espressif.github.io/arduino-esp32/package_esp32_index.json
    ```
 
-2. Install **esp32 by Espressif Systems** from Boards Manager. The code uses Arduino-ESP32 **3.x** timer APIs; 2.x is incompatible. The supplied local build metadata records core **3.3.12**. That is a reference environment, not a fresh compilation result.
-3. Download or clone this repository. Open `Source/GemaLight_ESP_LED_clock_3.6/GemaLight_ESP_LED_clock_3.6.ino`.
+2. Install **esp32 by Espressif Systems** from Boards Manager. The code uses Arduino-ESP32 **3.x** timer APIs; 2.x is incompatible. The supplied local build metadata records core **3.3.12**. The release workflow uses that exact core version.
+3. Download or clone this repository. Open `Source/GemaLight_ESP_LED_clock_3.8/GemaLight_ESP_LED_clock_3.8.ino`.
 4. Keep every `.cpp` and `.h` file beside the `.ino`. The sketch uses libraries included with Arduino-ESP32; do not install a separate third-party WiFiManager library for this project.
 5. Select **ESP32C3 Dev Module**, your serial port and the settings below. Verify, then upload.
 
@@ -50,7 +53,7 @@ Run from the repository root with Arduino CLI installed:
 ```sh
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core install esp32:esp32@3.3.12 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli compile --fqbn "esp32:esp32:esp32c3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=160,FlashFreq=80,FlashMode=qio,FlashSize=4M,PartitionScheme=min_spiffs,DebugLevel=none" --export-binaries Source/GemaLight_ESP_LED_clock_3.6
+arduino-cli compile --fqbn "esp32:esp32:esp32c3:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=160,FlashFreq=80,FlashMode=qio,FlashSize=4M,PartitionScheme=min_spiffs,DebugLevel=none" --export-binaries Source/GemaLight_ESP_LED_clock_3.8
 ```
 
 Reference: [Arduino CLI getting started](https://docs.arduino.cc/arduino-cli/getting-started/), [sketch folder specification](https://docs.arduino.cc/arduino-cli/sketch-specification/) and [ESP32 3.0 migration guide](https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html).

@@ -2,6 +2,30 @@
 
 Firmware versions and repository maintenance are tracked separately.
 
+## 3.8 — 2026-11-01
+
+- Integrated the constraint scan feature branch into main and renamed the Arduino sketch to 3.8.
+- Kept the author's tested settings: grouping enabled, two-LED limits and automatic low brightness 150.
+- Retained fixed per-segment exposure and fractional colon accumulation. The author reports more uniform, natural-looking brightness and closer colon tracking at low settings, with no noticeable maximum-brightness increase.
+- These hardware observations are qualitative; electrical current, interrupt timing and optical calibration have not been established by those observations.
+- Updated English/Spanish READMEs, build instructions and validation notes.
+- Added tagged release packaging for source, default firmware images, checksums and build provenance after host tests and both ESP32-C3 configurations pass.
+
+## 3.7-coc-experimental — 2026-10-31
+
+- Added a bounded constraint planner, independent schedule verification and
+  single-LED fallback using the existing v1.7 mapping.
+- Added opt-in grouped driving with total/source/sink LED-count constraints;
+  simultaneous driving stays disabled on the uncharacterized circuit.
+- Moved planning outside the ISR and added immutable double-buffered pin masks,
+  output-latch preloading and mapped-pin initialization.
+- Normalized per-segment exposure to a fixed 28-quantum frame and used fractional
+  colon accumulation; sparse displays are dimmer than v3.6 at equal settings.
+- Added read-only portal diagnostics at `/display-scan`, portable planner/driver
+  tests and ESP32-C3 CI builds for both configurations.
+- Electrical behavior, optical output and interrupt timing remain untested on
+  hardware. See [the experiment notes](docs/CONSTRAINT_SCAN.md).
+
 ## Repository maintenance — 2026-10-30
 
 - Reworked the project homepage with existing photographs, navigation and feature descriptions.

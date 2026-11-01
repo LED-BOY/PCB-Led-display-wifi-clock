@@ -2,13 +2,15 @@
 
 [Home](../README.md) · [Firmware](FIRMWARE.md)
 
-## Repository update
+## Firmware 3.8 validation status
 
-This update reorganizes the Arduino sketch and improves documentation. Firmware `.ino`, `.cpp` and `.h` files retain their original bytes. PCB, STL, schematic and existing release assets are preserved.
+The release workflow runs the existing portable planner and display-driver tests, then compiles both grouping configurations with Arduino-ESP32 3.3.12. Tagged release packaging depends on all three jobs passing. Release firmware uses grouping enabled and automatic low brightness 150.
 
-The local `build.options.json` identifies Arduino-ESP32 3.3.12 and the board settings documented in the firmware guide. Existing build files are historical evidence only. No fresh firmware compilation, upload or hardware test was performed for this documentation update.
+The project author reports testing the grouped feature configuration on the clock: more uniform, natural-looking brightness and closer colon tracking at low settings, with no noticeable maximum-brightness increase. These qualitative observations do not establish measured current limits, optical calibration, interrupt timing, or a complete Wi-Fi/OTA regression run for the final 3.8 build.
 
-## Before publishing new firmware
+The checklist below records further device checks; items are not marked complete without evidence. Historical 3.6 build data is not validation of 3.8.
+
+## Device validation checklist
 
 1. Compile using the documented core, board and OTA-capable partition scheme. Record tool versions, source commit and flash/RAM usage.
 2. Flash a compatible board and confirm the portal opens at startup, saves settings and closes correctly.
